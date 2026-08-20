@@ -1,0 +1,11 @@
+# Built Singularity images (rebuild with setup/build.sh)
+builds/*.sif
+builds/.build_staging/
+setup/.build_staging/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Project config created at runtime
+.agentic_peer_project.json

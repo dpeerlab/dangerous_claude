@@ -1,0 +1,93 @@
+Bootstrap: docker
+From: rockylinux:8.6
+
+%labels
+    Author krauset
+    Purpose dangerous_claude sandboxed Claude Code runtime
+
+%help
+    Container providing the Claude Code CLI, natively installed at /opt/claude/bin,
+    for use with container/dangerous_claude/start.sh.
+
+    The %post section always pulls the latest Claude Code release via the official
+    installer — rebuild periodically (container/dangerous_claude/setup/build.sh) to update.
+
+%environment
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    export PATH=/opt/claude/bin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
+
+%post
+    dnf install -y epel-release
+    dnf config-manager --set-enabled powertools
+    dnf install -y --setopt=tsflags=nodocs --allowerasing \
+        bash coreutils findutils gzip tar procps-ng openssh-clients \
+        curl git jq which glibc-langpack-en \
+        lua lua-posix lua-filesystem tcl
+    # lua-json: the host's Lmod (bind-mounted at /usr/share/lmod) requires a lua
+    # 'json' module on the system lua path; without it every `module` call dies
+    # in JsonShell.lua. Lmod pins its own LUA_PATH, so the module must live at
+    # /usr/share/lua/5.3/ — where the EPEL package installs it. Fall back to the
+    # dependency-free rxi/json.lua (same encode/decode API) if the package is gone.
+    dnf install -y lua-json || \
+        curl -fsSL https://raw.githubusercontent.com/rxi/json.lua/master/json.lua \
+            -o /usr/share/lua/5.3/json.lua
+    # Create mount points for cluster paths (needed for ro/rw bind mounts to work;
+    # Singularity silently skips binds whose destination doesn't exist in the image)
+    mkdir -p /data /data1 /ifs /scratch /usersoftware /programs /localscratch /io500 /usr/share/lmod /admin /etc/slurm /run/munge
+
+    # SLURM client (sbatch/squeue/scontrol/etc) — the RPM matches the host's
+    # from-source EL8 build exactly (25.11.3), so binaries+libs are ABI-compatible.
+    # slurm.conf and the munge auth socket still come from the host at runtime
+    # (bound in by start.sh, see setup.py) — this only bakes in the binaries.
+    # Fetched via a --bind mount onto /mnt (set up by build.sh) rather than
+    # %files: %files' copy-in silently no-ops under --fakeroot on this host,
+    # leaving the RPM missing even with an absolute source path — a bind
+    # mount works instead since it doesn't go through that copy engine at
+    # all. Bound straight onto /mnt itself (guaranteed to exist in the base
+    # image) rather than a subdirectory, since bind destinations that don't
+    # already exist in the image are silently skipped.
+    dnf install -y --setopt=tsflags=nodocs munge munge-libs mariadb-connector-c readline /mnt/slurm-client.rpm
+    # The host slurm.conf sets SlurmUser=slurm; if that user doesn't resolve
+    # inside the container, config parsing aborts and every client command
+    # (sbatch/squeue/...) dies with "Unable to process configuration file".
+    # Any uid works — client commands never act as this user (auth is munge).
+    useradd --system --shell /sbin/nologin --no-create-home slurm
+
+    # Node.js 20 LTS — Claude Code's npm-install fallback path, and a ripgrep runtime dep
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+    dnf install -y nodejs
+
+    # ripgrep — required by Claude Code for search
+    dnf install -y ripgrep || {
+        RG_VERSION=$(curl -s https://api.github.com/repos/BurntSushi/ripgrep/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+        curl -LO "https://github.com/BurntSushi/ripgrep/releases/download/${RG_VERSION}/ripgrep-${RG_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+        mkdir -p /tmp/rg && tar xzf ripgrep-*.tar.gz -C /tmp/rg --strip-components=1
+        cp /tmp/rg/rg /usr/local/bin/
+        rm -rf /tmp/rg ripgrep-*
+    }
+
+    # Claude Code — always installs whatever the official installer currently serves as latest
+    mkdir -p /opt/claude/bin
+    export HOME=/opt/claude
+    curl -fsSL https://claude.ai/install.sh | bash
+    if [ ! -f /opt/claude/bin/claude ] && [ -f /opt/claude/.local/bin/claude ]; then
+        ln -sf /opt/claude/.local/bin/claude /opt/claude/bin/claude
+    fi
+    chmod -R 755 /opt/claude
+
+    # Record the exact version baked into this image, read back by build.sh for naming
+    /opt/claude/bin/claude --version | awk '{print $1}' > /opt/claude/VERSION
+
+    # No build toolchain in the sandbox — remove make (and anything that pulled
+    # it in as a dependency) so the agent can't compile/install software inside
+    # the container.
+    dnf remove -y make || true
+
+    dnf clean all
+
+%runscript
+    exec /opt/claude/bin/claude "$@"
+
+%test
+    /opt/claude/bin/claude --version
