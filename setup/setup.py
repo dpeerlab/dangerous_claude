@@ -29,11 +29,12 @@ extra_write_paths is an unrelated advanced override, also not prompted for —
 see its definition below.
 
 readable_paths is another advanced override, also not prompted for — see
-RESTRICTABLE_RO_BINDS below.
+DEFAULT_RO_BINDS below.
 """
 import json
 import os
 import sys
+
 
 CONFIG_FIELDS = [
     ("always_use_dangerous_skip_permissions", True, "Always skip permission prompts?"),
@@ -49,13 +50,16 @@ CONFIG_FIELDS = [
 #   tools             — space-separated tool names to enable (default: none)
 #   extra_write_paths — extra absolute paths to bind read-write (list of str)
 #   readable_paths    — restrict which non-standard paths get bound read-only.
-#                        "*" (default) binds all of RESTRICTABLE_RO_BINDS below;
+#                        "*" (default) binds all of DEFAULT_RO_BINDS below;
 #                        a list of absolute paths binds only those (must be a
-#                        subset of RESTRICTABLE_RO_BINDS). Standard system
+#                        subset of DEFAULT_RO_BINDS). Standard system
 #                        paths (lmod, slurm, munge) are never restrictable.
+#   project_readonly  - mount working directory (project) as read-only (default: False)
+#                        useful if you want full control over rw/ro permissions
+#                        via `readable_paths` and `extra_write_paths`
 
 # Non-standard lab/cluster storage paths that readable_paths can restrict.
-RESTRICTABLE_RO_BINDS = [
+DEFAULT_RO_BINDS = [
     "/data1/peerd",
     "/data1/collab002",
     "/scratch",
@@ -66,6 +70,7 @@ RESTRICTABLE_RO_BINDS = [
 
 # Standard system paths, always bound read-only regardless of readable_paths.
 ALWAYS_RO_BINDS = [
+    "/usersoftware/collab002/",
     "/usr/share/lmod",
     # SLURM client config + munge auth socket — the sbatch/squeue/etc binaries
     # themselves are baked into the image (see Singularity.def), but these two
@@ -127,15 +132,24 @@ def main():
 
     readable_paths = config.get("readable_paths", "*")
     if readable_paths == "*":
-        allowed_restrictable = RESTRICTABLE_RO_BINDS
+        allowed_restrictable = DEFAULT_RO_BINDS
     else:
-        unknown = sorted(set(readable_paths) - set(RESTRICTABLE_RO_BINDS))
+        unknown = []
+        allowed_restrictable = []
+        for p in readable_paths:
+            found = False
+            for base in DEFAULT_RO_BINDS:
+                if os.path.commonpath([p, base]) == base:
+                    found = True
+                    allowed_restrictable.append(p)
+                    break
+            if not found:
+                unknown.append(p)
         if unknown:
             print(
-                f"warning: readable_paths entries not in RESTRICTABLE_RO_BINDS, ignoring: {unknown}",
+                f"warning: readable_paths entries not in DEFAULT_RO_BINDS, ignoring: {unknown}",
                 file=sys.stderr,
             )
-        allowed_restrictable = [p for p in RESTRICTABLE_RO_BINDS if p in readable_paths]
 
     binds = [f"{p}:{p}:ro" for p in allowed_restrictable]
     binds += [f"{p}:{p}:ro" for p in ALWAYS_RO_BINDS]
@@ -146,11 +160,13 @@ def main():
     # before the ~/.claude rw bind below (a bind nested under $HOME).
     binds.append(f"{home_dir}:{home_dir}:{'rw' if writeable_home else 'ro'}")
 
-    binds += [
-        f"{work_dir}:{work_dir}:rw",
-        "/tmp:/tmp:rw",
-    ]
+    project_readonly = config.get("project_readonly", False)
+    binds.append(f"{work_dir}:{work_dir}:{'ro' if project_readonly else 'rw'}")
+
+    binds.append("/tmp:/tmp:rw")
+        
     for extra_path in config.get("extra_write_paths", []):
+        extra_path = os.path.abspath(extra_path)
         binds.append(f"{extra_path}:{extra_path}:rw")
 
     # ~/.claude is always writable regardless of writeable_home, so Claude Code
