@@ -12,3 +12,5 @@ AGENTS.md
 CLAUDE.md
 /.agentic_peer_project.json
 /.agentic_peer_project.json.bak
+/.dangerous_claude.json
+/.dangerous_claude.json.bak

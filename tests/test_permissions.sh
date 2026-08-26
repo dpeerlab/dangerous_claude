@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # replace config file
-CONFIG_FILE="${PROJECT_DIR}/.agentic_peer_project.json"
+CONFIG_FILE="${PROJECT_DIR}/.dangerous_claude.json"
 CONFIG_BACKUP="${CONFIG_FILE}.bak"
 TEMPLATE="${SCRIPT_DIR}/assets/.agentic_peer_project_template.json"
 
