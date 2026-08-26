@@ -36,8 +36,10 @@ defaults so you don't have to repeat yourself in every project:
   - scalars (writeable_home, project_readonly,
     always_use_dangerous_skip_permissions, tools, project_config_filename):
     project value wins if set, else the global value, else the builtin
-    default. A CONFIG_FIELDS prompt is skipped if either the project or the
-    global config already has the key.
+    default. CONFIG_FIELDS is still prompted for per project if missing from
+    the project config, even when the global config already has it — the
+    global value is just the suggested default shown in the prompt, so a
+    project explicitly opts in rather than silently inheriting it.
   - lists (extra_write_paths, readable_paths): global entries + project
     entries, concatenated. readable_paths is the exception when the project
     sets it to "*" (the default) — that keeps meaning "all of
@@ -110,10 +112,6 @@ def load_config(path):
 GLOBAL_CONFIG_PATH = os.path.join(os.environ["HOME"], ".dangerous_claude", "config.json")
 
 
-def load_global_config():
-    return load_config(GLOBAL_CONFIG_PATH)
-
-
 YELLOW = "\033[33m"
 RESET = "\033[0m"
 
@@ -141,7 +139,7 @@ def main():
     if extra_args and extra_args[0] == "--":
         extra_args = extra_args[1:]
 
-    global_config = load_global_config()
+    global_config = load_config(GLOBAL_CONFIG_PATH)
 
     project_filename = global_config.get("project_config_filename", ".agentic_peer_project.json")
     config_path = os.path.join(work_dir, project_filename)
@@ -149,8 +147,10 @@ def main():
 
     changed = False
     for name, default, desc in CONFIG_FIELDS:
-        if name not in config and name not in global_config:
-            config[name] = prompt_for(name, default, desc)
+        if name not in config:
+            # global config supplies the suggested default, but this project
+            # still gets asked explicitly rather than silently inheriting it
+            config[name] = prompt_for(name, global_config.get(name, default), desc)
             changed = True
 
     if changed:
