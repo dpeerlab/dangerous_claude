@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Usage: dangerous_claude CMD [ARGS...]
+#   dangerous_claude claude [-- extra claude args...]
+#   dangerous_claude bash
+#   dangerous_claude sbatch --version
+#
+# Runs CMD inside the dangerous_claude Singularity sandbox, scoped to the
+# current working directory
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib.sh"
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: dangerous_claude CMD [ARGS...]" >&2
+    exit 1
+fi
+
+dangerous_claude_run "$@"
