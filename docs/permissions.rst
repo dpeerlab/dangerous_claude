@@ -16,7 +16,7 @@ Default access
 - Anything else: not visible at all, not even read-only.
 
 ``extra_write_paths``
---------------------
+---------------------
 
 Makes specific paths writable even though they'd otherwise be read-only, for example a tool in 
 another directory.
@@ -35,9 +35,15 @@ that should stay read-only even though the project itself is writable — e.g. s
 
    {"readable_paths": ["/data1/collab002/myproject/raw_data"]}
 
+Global defaults
+------------------
+
+``~/.dangerous_claude/config.json`` sets defaults for every project, so you don't repeat
+yourself. ``extra_write_paths``/``readable_paths`` there are added to whatever a project sets;
+other settings (like ``writeable_home``) apply unless a project overrides them.
 
 This is not a perfect security boundary against a compromised agent
---------------------------------------------------------
+------------------------------------------------------------------------
 
 This only limits filesystem writes. It doesn't block network access, and ``~/.claude``
 credentials are always readable. A prompt-injected or otherwise compromised agent can still read

@@ -30,6 +30,21 @@ see its definition below.
 
 readable_paths is another advanced override, also not prompted for — see
 DEFAULT_RO_BINDS below.
+
+Global config, read from ~/.dangerous_claude/config.json if present, supplies
+defaults so you don't have to repeat yourself in every project:
+  - scalars (writeable_home, project_readonly,
+    always_use_dangerous_skip_permissions, tools, project_config_filename):
+    project value wins if set, else the global value, else the builtin
+    default. A CONFIG_FIELDS prompt is skipped if either the project or the
+    global config already has the key.
+  - lists (extra_write_paths, readable_paths): global entries + project
+    entries, concatenated. readable_paths is the exception when the project
+    sets it to "*" (the default) — that keeps meaning "all of
+    DEFAULT_RO_BINDS", ignoring any global readable_paths list.
+  - project_config_filename lets the global config point at a different
+    project-file name than .agentic_peer_project.json, so a rename doesn't
+    break existing per-project config files.
 """
 import json
 import os
@@ -92,6 +107,13 @@ def load_config(path):
     return {}
 
 
+GLOBAL_CONFIG_PATH = os.path.join(os.environ["HOME"], ".dangerous_claude", "config.json")
+
+
+def load_global_config():
+    return load_config(GLOBAL_CONFIG_PATH)
+
+
 YELLOW = "\033[33m"
 RESET = "\033[0m"
 
@@ -119,12 +141,15 @@ def main():
     if extra_args and extra_args[0] == "--":
         extra_args = extra_args[1:]
 
-    config_path = os.path.join(work_dir, ".agentic_peer_project.json")
+    global_config = load_global_config()
+
+    project_filename = global_config.get("project_config_filename", ".agentic_peer_project.json")
+    config_path = os.path.join(work_dir, project_filename)
     config = load_config(config_path)
 
     changed = False
     for name, default, desc in CONFIG_FIELDS:
-        if name not in config:
+        if name not in config and name not in global_config:
             config[name] = prompt_for(name, default, desc)
             changed = True
 
@@ -135,8 +160,19 @@ def main():
 
     home_dir = os.environ["HOME"]
 
+    def merged(key, default):
+        return config.get(key, global_config.get(key, default))
+
     readable_paths = config.get("readable_paths", "*")
     if readable_paths == "*":
+        if "readable_paths" not in config and "readable_paths" in global_config:
+            readable_paths = global_config["readable_paths"]
+        else:
+            readable_paths = DEFAULT_RO_BINDS
+    else:
+        readable_paths = global_config.get("readable_paths", []) + readable_paths
+
+    if readable_paths == DEFAULT_RO_BINDS:
         allowed_restrictable = DEFAULT_RO_BINDS
     else:
         unknown = []
@@ -163,20 +199,21 @@ def main():
     binds = [f"{p}:{p}:ro" for p in root_restrictions]
     binds += [f"{p}:{p}:ro" for p in ALWAYS_RO_BINDS]
 
-    writeable_home = config.get("writeable_home", True)
+    writeable_home = merged("writeable_home", True)
     # Whole of $HOME, read-write or read-only depending on writeable_home —
     # so dotfiles/tool config behave as on the host either way. Must come
     # before the ~/.claude rw bind below (a bind nested under $HOME).
     binds.append(f"{home_dir}:{home_dir}:{'rw' if writeable_home else 'ro'}")
 
-    project_readonly = config.get("project_readonly", False)
+    project_readonly = merged("project_readonly", False)
     binds.append(f"{work_dir}:{work_dir}:{'ro' if project_readonly else 'rw'}")
 
     binds.append("/tmp:/tmp:rw")
 
     binds += [f"{p}:{p}:ro" for p in nested_restrictions]
 
-    for extra_path in config.get("extra_write_paths", []):
+    extra_write_paths = global_config.get("extra_write_paths", []) + config.get("extra_write_paths", [])
+    for extra_path in extra_write_paths:
         extra_path = os.path.abspath(extra_path)
         binds.append(f"{extra_path}:{extra_path}:rw")
 
@@ -202,7 +239,7 @@ def main():
         "Never install software, unless the user explicitely instructs you to. If the user "
         "wants to install software, it has to be into /usersoftware/peerd/<username>, never into ~",
     ]
-    if config.get("always_use_dangerous_skip_permissions", True):
+    if merged("always_use_dangerous_skip_permissions", True):
         skip_permissions = True
     else:
         skip_permissions = prompt_for("skip_permissions_this_session", False, "Skip permission prompts for this session")
@@ -214,8 +251,8 @@ def main():
     print(json.dumps({
         "binds": binds,
         "claude_args": claude_args,
-        "tools": config.get("tools", ""),
-        "always_use_dangerous_skip_permissions": config.get("always_use_dangerous_skip_permissions", True),
+        "tools": merged("tools", ""),
+        "always_use_dangerous_skip_permissions": merged("always_use_dangerous_skip_permissions", True),
     }))
 
 
