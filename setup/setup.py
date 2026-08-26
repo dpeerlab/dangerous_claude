@@ -51,8 +51,12 @@ CONFIG_FIELDS = [
 #   extra_write_paths — extra absolute paths to bind read-write (list of str)
 #   readable_paths    — restrict which non-standard paths get bound read-only.
 #                        "*" (default) binds all of DEFAULT_RO_BINDS below;
-#                        a list of absolute paths binds only those (must be a
-#                        subset of DEFAULT_RO_BINDS). Standard system
+#                        a list of absolute paths binds only those (each must
+#                        be one of DEFAULT_RO_BINDS itself, or nested inside
+#                        one). A path nested inside home_dir/work_dir is
+#                        layered on top of that (otherwise writable) bind as
+#                        a read-only carve-out — order in the binds list
+#                        matters for that case, see below. Standard system
 #                        paths (lmod, slurm, munge) are never restrictable.
 #   project_readonly  - mount working directory (project) as read-only (default: False)
 #                        useful if you want full control over rw/ro permissions
@@ -66,6 +70,7 @@ DEFAULT_RO_BINDS = [
     "/ifs",
     "/usersoftware",
     "/admin",
+    "/localscratch",
 ]
 
 # Standard system paths, always bound read-only regardless of readable_paths.
@@ -151,7 +156,11 @@ def main():
                 file=sys.stderr,
             )
 
-    binds = [f"{p}:{p}:ro" for p in allowed_restrictable]
+    # order or binds matter
+    root_restrictions = [p for p in allowed_restrictable if p in DEFAULT_RO_BINDS]
+    nested_restrictions = [p for p in allowed_restrictable if p not in DEFAULT_RO_BINDS]
+
+    binds = [f"{p}:{p}:ro" for p in root_restrictions]
     binds += [f"{p}:{p}:ro" for p in ALWAYS_RO_BINDS]
 
     writeable_home = config.get("writeable_home", True)
@@ -164,7 +173,9 @@ def main():
     binds.append(f"{work_dir}:{work_dir}:{'ro' if project_readonly else 'rw'}")
 
     binds.append("/tmp:/tmp:rw")
-        
+
+    binds += [f"{p}:{p}:ro" for p in nested_restrictions]
+
     for extra_path in config.get("extra_write_paths", []):
         extra_path = os.path.abspath(extra_path)
         binds.append(f"{extra_path}:{extra_path}:rw")
