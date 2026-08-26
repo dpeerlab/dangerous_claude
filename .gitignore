@@ -7,9 +7,10 @@ setup/.build_staging/
 __pycache__/
 *.py[cod]
 
-# Project config created at runtime
-.agentic_peer_project.json
-
 # Local agent notes, not published
 /AGENTS.md
 /CLAUDE.md
+# Project config created at runtime (anchored to root — tests/assets/ ships
+# a template of this same filename that must stay tracked)
+/.agentic_peer_project.json
+/.agentic_peer_project.json.bak

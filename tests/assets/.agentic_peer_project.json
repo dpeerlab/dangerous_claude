@@ -1,0 +1,12 @@
+{
+  "always_use_dangerous_skip_permissions": true,
+  "writeable_home": false,
+  "readable_paths": [
+    "<TESTS_DIR>/.test_dangerous_readonly",
+    "/localscratch/.test_dangerous_claude_read"
+  ],
+  "extra_write_paths": [
+    "<HOME>/.test_dangerous_claude",
+    "/localscratch/.test_dangerous_claude_write"
+  ]
+}
