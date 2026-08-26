@@ -9,6 +9,7 @@ missing keys (defaults shown in brackets). Prints a JSON object on stdout:
     "binds": [...],                 # singularity --bind entries, "src:dst:mode"
     "claude_args": [...],           # args to pass to claude inside the container
     "tools": "a,b,c",               # AGENTIC_TOOLS env value
+    "tools_root": "/path/to/tools", # global config's tools_root, "" disables tools
     "always_use_dangerous_skip_permissions": true,
   }
   
@@ -29,7 +30,7 @@ extra_write_paths is an unrelated advanced override, also not prompted for —
 see its definition below.
 
 readable_paths is another advanced override, also not prompted for — see
-DEFAULT_RO_BINDS below.
+default_ro_paths below.
 
 Global config, read from ~/.dangerous_claude/config.json if present, supplies
 defaults so you don't have to repeat yourself in every project:
@@ -41,10 +42,13 @@ defaults so you don't have to repeat yourself in every project:
   - lists (extra_write_paths, readable_paths): global entries + project
     entries, concatenated. readable_paths is the exception when the project
     sets it to "*" (the default) — that keeps meaning "all of
-    DEFAULT_RO_BINDS", ignoring any global readable_paths list.
+    default_ro_paths", ignoring any global readable_paths list.
   - project_config_filename lets the global config point at a different
     project-file name than .agentic_peer_project.json, so a rename doesn't
     break existing per-project config files.
+  - default_ro_paths, tools_root, system_prompt_note: see their definitions
+    below — none of this repo's own cluster paths are baked in, they're
+    entirely a global-config concern.
 """
 import json
 import os
@@ -61,41 +65,45 @@ CONFIG_FIELDS = [
 ]
 
 # Advanced overrides, not prompted for interactively — edit .agentic_peer_project.json
-# by hand if you need them:
+# (project) or ~/.dangerous_claude/config.json (global, see module docstring) by hand
+# if you need them:
 #   tools             — space-separated tool names to enable (default: none)
 #   extra_write_paths — extra absolute paths to bind read-write (list of str)
 #   readable_paths    — restrict which non-standard paths get bound read-only.
-#                        "*" (default) binds all of DEFAULT_RO_BINDS below;
-#                        a list of absolute paths binds only those (each must
-#                        be one of DEFAULT_RO_BINDS itself, or nested inside
-#                        one). A path nested inside home_dir/work_dir is
-#                        layered on top of that (otherwise writable) bind as
-#                        a read-only carve-out — order in the binds list
-#                        matters for that case, see below. Standard system
-#                        paths (lmod, slurm, munge) are never restrictable.
+#                        "*" (default) binds all of default_ro_paths (global
+#                        config, empty unless set); a list of absolute paths
+#                        binds only those (each must be one of
+#                        default_ro_paths itself, or nested inside one). A
+#                        path nested inside home_dir/work_dir is layered on
+#                        top of that (otherwise writable) bind as a read-only
+#                        carve-out — order in the binds list matters for that
+#                        case, see below. SYSTEM_RO_BINDS below is never
+#                        restrictable.
 #   project_readonly  - mount working directory (project) as read-only (default: False)
 #                        useful if you want full control over rw/ro permissions
 #                        via `readable_paths` and `extra_write_paths`
+#
+# Global-only (~/.dangerous_claude/config.json):
+#   default_ro_paths     — cluster/lab storage paths readable_paths can restrict
+#                          (list of str, default: none — this repo ships with no
+#                          cluster paths baked in, unlike the two below which are
+#                          generic enough to default on any HPC-ish system)
+#   tools_root           — directory containing tool folders for `tools` (see
+#                          setup/add_tools.py); unset disables the feature
+#   system_prompt_note   — extra sentence appended to the sandbox system prompt,
+#                          e.g. a pointer to your own docs/wiki
 
-# Non-standard lab/cluster storage paths that readable_paths can restrict.
-DEFAULT_RO_BINDS = [
-    "/data1/peerd",
-    "/data1/collab002",
-    "/scratch",
-    "/ifs",
-    "/usersoftware",
-    "/admin",
-    "/localscratch",
-]
-
-# Standard system paths, always bound read-only regardless of readable_paths.
-ALWAYS_RO_BINDS = [
-    "/usersoftware/collab002/",
+# Generic OS/tool paths needed for host binaries reached via the inherited PATH
+# (module, slurm, gpu tooling) to work — always bound read-only, never
+# restrictable, and not lab-specific so they stay hardcoded.
+SYSTEM_RO_BINDS = [
+    "/etc",
+    "/lib",
+    "/lib64",
+    "/usr/lib",
+    "/usr/lib64",
     "/usr/share/lmod",
-    # SLURM client config + munge auth socket — the sbatch/squeue/etc binaries
-    # themselves are baked into the image (see Singularity.def), but these two
-    # are live host state that can't be baked in.
-    "/etc/slurm",
+    # munge auth socket — live host state, can't be baked into the image.
     "/run/munge",
 ]
 
@@ -143,7 +151,7 @@ def main():
 
     global_config = load_global_config()
 
-    project_filename = global_config.get("project_config_filename", ".agentic_peer_project.json")
+    project_filename = global_config.get("project_config_filename", ".dangerous_claude.json")
     config_path = os.path.join(work_dir, project_filename)
     config = load_config(config_path)
 
@@ -163,23 +171,25 @@ def main():
     def merged(key, default):
         return config.get(key, global_config.get(key, default))
 
+    default_ro_paths = global_config.get("default_ro_paths", [])
+
     readable_paths = config.get("readable_paths", "*")
     if readable_paths == "*":
         if "readable_paths" not in config and "readable_paths" in global_config:
             readable_paths = global_config["readable_paths"]
         else:
-            readable_paths = DEFAULT_RO_BINDS
+            readable_paths = default_ro_paths
     else:
         readable_paths = global_config.get("readable_paths", []) + readable_paths
 
-    if readable_paths == DEFAULT_RO_BINDS:
-        allowed_restrictable = DEFAULT_RO_BINDS
+    if readable_paths == default_ro_paths:
+        allowed_restrictable = default_ro_paths
     else:
         unknown = []
         allowed_restrictable = []
         for p in readable_paths:
             found = False
-            for base in DEFAULT_RO_BINDS:
+            for base in default_ro_paths:
                 if os.path.commonpath([p, base]) == base:
                     found = True
                     allowed_restrictable.append(p)
@@ -188,16 +198,16 @@ def main():
                 unknown.append(p)
         if unknown:
             print(
-                f"warning: readable_paths entries not in DEFAULT_RO_BINDS, ignoring: {unknown}",
+                f"warning: readable_paths entries not in default_ro_paths, ignoring: {unknown}",
                 file=sys.stderr,
             )
 
     # order or binds matter
-    root_restrictions = [p for p in allowed_restrictable if p in DEFAULT_RO_BINDS]
-    nested_restrictions = [p for p in allowed_restrictable if p not in DEFAULT_RO_BINDS]
+    root_restrictions = [p for p in allowed_restrictable if p in default_ro_paths]
+    nested_restrictions = [p for p in allowed_restrictable if p not in default_ro_paths]
 
     binds = [f"{p}:{p}:ro" for p in root_restrictions]
-    binds += [f"{p}:{p}:ro" for p in ALWAYS_RO_BINDS]
+    binds += [f"{p}:{p}:ro" for p in SYSTEM_RO_BINDS]
 
     writeable_home = merged("writeable_home", True)
     # Whole of $HOME, read-write or read-only depending on writeable_home —
@@ -229,15 +239,19 @@ def main():
         home_desc = "Your real home is mounted read-write (writeable_home=true), including credentials"
     else:
         home_desc = "Your real home is mounted read-only (writeable_home=false)"
+    system_prompt = (
+        "You are running in dangerous_claude, a sandboxed session with write access limited to "
+        f"this project folder (plus any extra_write_paths configured in {project_filename}). "
+        f"{home_desc}, and ~/.claude is always writable so Claude's own state persists there. "
+        "Never install software unless the user explicitly instructs you to, and only into a "
+        "location you've confirmed is writable (see extra_write_paths), never into ~."
+    )
+    system_prompt_note = global_config.get("system_prompt_note")
+    if system_prompt_note:
+        system_prompt += f" {system_prompt_note}"
     claude_args = [
         "--append-system-prompt",
-        "You are running in dangerous_claude, a sandboxed session with write access limited to "
-        "this project folder (plus any extra_write_paths configured in .agentic_peer_project.json). "
-        f"{home_desc}, and ~/.claude is always writable so Claude's own state persists there; see "
-        "/data1/collab002/sail/projects/tools/sail_force/docs/dangerous_claude.md "
-        "or run `/usersoftware/collab002/sail/tools/peer-wiki/query` for more details. "
-        "Never install software, unless the user explicitely instructs you to. If the user "
-        "wants to install software, it has to be into /usersoftware/peerd/<username>, never into ~",
+        system_prompt,
     ]
     if merged("always_use_dangerous_skip_permissions", True):
         skip_permissions = True
@@ -252,6 +266,7 @@ def main():
         "binds": binds,
         "claude_args": claude_args,
         "tools": merged("tools", ""),
+        "tools_root": global_config.get("tools_root", ""),
         "always_use_dangerous_skip_permissions": merged("always_use_dangerous_skip_permissions", True),
     }))
 
