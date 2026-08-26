@@ -55,10 +55,6 @@ confirming explicitly rather than silently inheriting. A few settings only make 
   working unchanged
 - ``system_prompt_note`` — an extra sentence appended to the sandbox's system prompt, e.g. a
   pointer to your own docs
-- ``dangerous_claude_version`` — informational for now; the version of dangerous_claude this
-  config was last written for. Not enforced yet — see `#9
-  <https://github.com/dpeerlab/dangerous_claude/issues/9>`_ for the planned migration workflow
-  built on it.
 
 ``tools`` folders live in this repo's ``tools/`` directory for now — not yet configurable.
 
@@ -66,9 +62,16 @@ confirming explicitly rather than silently inheriting. A few settings only make 
 
    {
      "default_ro_paths": ["/data1/collab002", "/scratch"],
-     "project_config_filename": ".agentic_peer_project.json",
-     "dangerous_claude_version": "0.2.0"
+     "project_config_filename": ".agentic_peer_project.json"
    }
+
+Migration reminders
+----------------------
+
+If ``~/.dangerous_claude/.version_last_migrated`` doesn't match this repo's ``.version``, the
+session's system prompt is told to read ``CHANGELOG.md`` and help migrate before doing anything
+else. Whoever/whatever does that migration should then update
+``.version_last_migrated`` — see `#9 <https://github.com/dpeerlab/dangerous_claude/issues/9>`_.
 
 ``env`` sets extra environment variables inside the container (e.g. ``AWS_PROFILE``) — global
 and project ``env`` dicts merge key-by-key, with the project's value winning on collision:
