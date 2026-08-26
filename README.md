@@ -1,44 +1,35 @@
 # dangerous_claude
 
-Run the Claude Code CLI on the lab HPC cluster inside a Singularity sandbox, with write access limited to the project folder and permission prompts skipped for autonomous agentic work.
+Claude can easily go rogue and read or write files that have nothing to do with the project it's
+working on, which makes it risky to run with permission prompts skipped
+(`--dangerously-skip-permissions`). `dangerous_claude` runs Claude Code inside a Singularity
+container that restricts filesystem access at the system level, so even a rogue session stays
+contained to the project it was started in.
 
-> **Alpha — v0.0.1.** Interfaces and defaults may change.
-
-## What's here
-
-- `dangerous_claude` — entry point: `dangerous_claude CMD [ARGS...]` runs `CMD` (e.g. `claude`, `bash`, `sbatch --version`) inside the sandbox, scoped to the current working directory.
-- `lib.sh` — the shared setup/launch logic (config resolution, binds, container exec), as a sourceable function, `dangerous_claude_run`.
-- `setup/setup.py` — resolve/persist per-project config (`.agentic_peer_project.json`) and derive the container's bind mounts and CLI args.
-- `setup/add_tools.py` — enable configured tools into the session's `settings.json`.
-- `setup/Singularity.def` + `setup/build.sh` — build the container image (Rocky Linux 8 + latest Claude Code, Node, ripgrep, SLURM client).
-- `builds/` — built `.sif` images land here (gitignored).
-- `start.sh` / `start_bash.sh` — **backwards-compatible** wrappers for `dangerous_claude claude` / `dangerous_claude bash`. Only kept because some existing setups (e.g. the `claude()` shell function in `sail_force`) call `start.sh` directly; prefer `dangerous_claude` for anything new.
-
-## Usage
+## Installation
 
 ```bash
-# Build the container (once, and to update Claude Code)
+git clone https://github.com/dpeerlab/dangerous_claude.git
+cd dangerous_claude
 bash setup/build.sh
-
-# Start a sandboxed session in the current directory
-cd /abs/path/to/project
-./dangerous_claude claude
-
-# Drop into a shell, or run any other command, in the same sandbox
-./dangerous_claude bash
-./dangerous_claude sbatch --version
 ```
 
-There is no work-directory argument — the sandbox always scopes to the
-current working directory; `cd` there first.
+## Launch
 
-On first run per project, `setup.py` prompts for two settings (skip permission
-prompts, writeable home) and writes `.agentic_peer_project.json`.
+```bash
+cd /abs/path/to/your/project
+./dangerous_claude claude
+```
 
-## Sandbox model
+Sandboxes the current directory — there's no work-dir argument, `cd` there first. First run in a
+project prompts for two settings and writes `.agentic_peer_project.json`, e.g.:
 
-- Write access is limited to the project directory (plus any `extra_write_paths`).
-- `$HOME` is bound read-only or read-write per `writeable_home`; `~/.claude`
-  is always writable so Claude persists its own state to the real home.
-- Cluster storage paths are bound read-only; no build toolchain is present, so
-  the agent cannot install software inside the container.
+```json
+{
+  "always_use_dangerous_skip_permissions": true,
+  "writeable_home": true,
+  "extra_write_paths": ["/home/you/.some_tool_cache"]
+}
+```
+
+See `docs/` for the full sandbox model and configuration reference.
