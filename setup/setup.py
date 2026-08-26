@@ -9,7 +9,6 @@ missing keys (defaults shown in brackets). Prints a JSON object on stdout:
     "binds": [...],                 # singularity --bind entries, "src:dst:mode"
     "claude_args": [...],           # args to pass to claude inside the container
     "tools": "a,b,c",               # AGENTIC_TOOLS env value
-    "tools_root": "/path/to/tools", # global config's tools_root, "" disables tools
     "always_use_dangerous_skip_permissions": true,
   }
   
@@ -48,9 +47,9 @@ defaults so you don't have to repeat yourself in every project:
   - project_config_filename lets the global config point at a different
     project-file name than .agentic_peer_project.json, so a rename doesn't
     break existing per-project config files.
-  - default_ro_paths, tools_root, system_prompt_note: see their definitions
-    below — none of this repo's own cluster paths are baked in, they're
-    entirely a global-config concern.
+  - default_ro_paths, system_prompt_note: see their definitions below — none
+    of this repo's own cluster paths are baked in, they're entirely a
+    global-config concern.
 """
 import json
 import os
@@ -88,12 +87,12 @@ CONFIG_FIELDS = [
 # Global-only (~/.dangerous_claude/config.json):
 #   default_ro_paths     — cluster/lab storage paths readable_paths can restrict
 #                          (list of str, default: none — this repo ships with no
-#                          cluster paths baked in, unlike the two below which are
-#                          generic enough to default on any HPC-ish system)
-#   tools_root           — directory containing tool folders for `tools` (see
-#                          setup/add_tools.py); unset disables the feature
+#                          cluster paths baked in)
 #   system_prompt_note   — extra sentence appended to the sandbox system prompt,
 #                          e.g. a pointer to your own docs/wiki
+#
+# tools' folders live in this repo's tools/ directory for now (see
+# setup/add_tools.py) — not yet configurable.
 
 # Generic OS/tool paths needed for host binaries reached via the inherited PATH
 # (module, slurm, gpu tooling) to work — always bound read-only, never
@@ -266,7 +265,6 @@ def main():
         "binds": binds,
         "claude_args": claude_args,
         "tools": merged("tools", ""),
-        "tools_root": global_config.get("tools_root", ""),
         "always_use_dangerous_skip_permissions": merged("always_use_dangerous_skip_permissions", True),
     }))
 

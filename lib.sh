@@ -38,8 +38,6 @@ dangerous_claude_run() {
     mapfile -t binds < <(jq -r '.binds[]' <<< "${setup_json}")
     local tools
     tools=$(jq -r '.tools' <<< "${setup_json}")
-    local tools_root
-    tools_root=$(jq -r '.tools_root' <<< "${setup_json}")
     local bind_str
     bind_str=$(IFS=,; echo "${binds[*]}")
 
@@ -49,8 +47,8 @@ dangerous_claude_run() {
     local home_dir="${HOME}"
     local claude_config="${home_dir}/.claude"    # must be read-write
 
-    # enable configured tools (no-op if tools_root isn't set in the global config)
-    python3 "${DANGEROUS_CLAUDE_ROOT}/setup/add_tools.py" "${work_dir}" "${tools}" "${tools_root}"
+    # enable configured tools
+    python3 "${DANGEROUS_CLAUDE_ROOT}/setup/add_tools.py" "${work_dir}" "${tools}"
 
     local -a run_cmd
     if [[ "${cmd}" == "claude" ]]; then

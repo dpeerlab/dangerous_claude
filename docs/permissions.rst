@@ -52,9 +52,10 @@ only make sense globally:
 - ``project_config_filename`` — use a different project-file name than
   ``.dangerous_claude.json``, e.g. to keep existing ``.agentic_peer_project.json`` projects
   working unchanged
-- ``tools_root`` — where the folders for ``tools`` live; unset disables that feature
 - ``system_prompt_note`` — an extra sentence appended to the sandbox's system prompt, e.g. a
   pointer to your own docs
+
+``tools`` folders live in this repo's ``tools/`` directory for now — not yet configurable.
 
 .. code-block:: json
 
