@@ -12,7 +12,7 @@ PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # replace config file
 CONFIG_FILE="${PROJECT_DIR}/.agentic_peer_project.json"
 CONFIG_BACKUP="${CONFIG_FILE}.bak"
-TEMPLATE="${SCRIPT_DIR}/assets/.agentic_peer_project.json"
+TEMPLATE="${SCRIPT_DIR}/assets/.agentic_peer_project_template.json"
 
 # test directories
 export PATH_READONLY_DIR="${SCRIPT_DIR}/.test_dangerous_readonly"

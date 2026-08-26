@@ -8,9 +8,7 @@ __pycache__/
 *.py[cod]
 
 # Local agent notes, not published
-/AGENTS.md
-/CLAUDE.md
-# Project config created at runtime (anchored to root — tests/assets/ ships
-# a template of this same filename that must stay tracked)
+AGENTS.md
+CLAUDE.md
 /.agentic_peer_project.json
 /.agentic_peer_project.json.bak
