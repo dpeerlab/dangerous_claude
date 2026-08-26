@@ -43,9 +43,10 @@ Global defaults
 ------------------
 
 ``~/.dangerous_claude/config.json`` sets defaults for every project, so you don't repeat
-yourself. ``extra_write_paths``/``readable_paths`` there are added to whatever a project sets;
-other settings (like ``writeable_home``) apply unless a project overrides them. A few settings
-only make sense globally:
+yourself. ``extra_write_paths``/``readable_paths`` there are added to whatever a project sets.
+``writeable_home``/``always_use_dangerous_skip_permissions`` still prompt per project even with
+a global value set — the global value is just the suggested default, since those are worth
+confirming explicitly rather than silently inheriting. A few settings only make sense globally:
 
 - ``default_ro_paths`` — your cluster's storage paths that ``readable_paths`` can restrict
   (empty by default; see the "anything else" note above)
@@ -54,6 +55,10 @@ only make sense globally:
   working unchanged
 - ``system_prompt_note`` — an extra sentence appended to the sandbox's system prompt, e.g. a
   pointer to your own docs
+- ``dangerous_claude_version`` — informational for now; the version of dangerous_claude this
+  config was last written for. Not enforced yet — see `#9
+  <https://github.com/dpeerlab/dangerous_claude/issues/9>`_ for the planned migration workflow
+  built on it.
 
 ``tools`` folders live in this repo's ``tools/`` directory for now — not yet configurable.
 
@@ -61,7 +66,8 @@ only make sense globally:
 
    {
      "default_ro_paths": ["/data1/collab002", "/scratch"],
-     "project_config_filename": ".agentic_peer_project.json"
+     "project_config_filename": ".agentic_peer_project.json",
+     "dangerous_claude_version": "0.2.0"
    }
 
 ``env`` sets extra environment variables inside the container (e.g. ``AWS_PROFILE``) — global
