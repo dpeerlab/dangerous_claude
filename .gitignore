@@ -9,3 +9,7 @@ __pycache__/
 
 # Project config created at runtime
 .agentic_peer_project.json
+
+# Local agent notes, not published
+/AGENTS.md
+/CLAUDE.md
