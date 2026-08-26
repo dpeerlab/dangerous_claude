@@ -208,20 +208,22 @@ def main():
     system_prompt_note = global_config.get("system_prompt_note")
     if system_prompt_note:
         system_prompt += f" {system_prompt_note}"
+
+    # --append-system-prompt isn't repeatable (a second occurrence overrides the first,
+    # it doesn't accumulate), so any additions must be concatenated into this one string.
+    current_version = read_version(VERSION_PATH)
+    last_migrated = read_version(LAST_MIGRATED_PATH)
+    if current_version and current_version != last_migrated:
+        system_prompt += (
+            " Before anything else, read the change log. The last migrated version was "
+            f"{last_migrated or 'none'} but the current version is {current_version}. Help "
+            "the user migrate before answering questions."
+        )
+
     claude_args = [
         "--append-system-prompt",
         system_prompt,
     ]
-
-    current_version = read_version(VERSION_PATH)
-    last_migrated = read_version(LAST_MIGRATED_PATH)
-    if current_version and current_version != last_migrated:
-        claude_args += [
-            "--append-system-prompt",
-            "Before anything else, read the change log. The last migrated version was "
-            f"{last_migrated or 'none'} but the current version is {current_version}. Help "
-            "the user migrate before answering questions.",
-        ]
 
     if merged("always_use_dangerous_skip_permissions", True):
         skip_permissions = True
