@@ -55,12 +55,17 @@ only make sense globally:
 - ``tools_root`` — where the folders for ``tools`` live; unset disables that feature
 - ``system_prompt_note`` — an extra sentence appended to the sandbox's system prompt, e.g. a
   pointer to your own docs
+- ``dangerous_claude_version`` — informational for now; the version of dangerous_claude this
+  config was last written for. Not enforced yet — see `#9
+  <https://github.com/dpeerlab/dangerous_claude/issues/9>`_ for the planned migration workflow
+  built on it.
 
 .. code-block:: json
 
    {
      "default_ro_paths": ["/data1/collab002", "/scratch"],
-     "project_config_filename": ".agentic_peer_project.json"
+     "project_config_filename": ".agentic_peer_project.json",
+     "dangerous_claude_version": "0.2.0"
    }
 
 ``env`` sets extra environment variables inside the container (e.g. ``AWS_PROFILE``) — global

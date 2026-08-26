@@ -32,4 +32,5 @@ project prompts for two settings and writes `.dangerous_claude.json`, e.g.:
 }
 ```
 
-See `docs/` for the full sandbox model and configuration reference.
+See `docs/` for the full sandbox model and configuration reference, and `CHANGELOG.md` for
+what's new.

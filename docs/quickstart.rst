@@ -27,5 +27,5 @@ command, not just ``claude``:
    ./dangerous_claude bash
    ./dangerous_claude sbatch --version
 
-First run in a project prompts for two settings and writes ``.agentic_peer_project.json`` —
+First run in a project prompts for two settings and writes ``.dangerous_claude.json`` —
 see :doc:`permissions`.
