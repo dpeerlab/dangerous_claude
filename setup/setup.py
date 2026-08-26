@@ -9,6 +9,7 @@ missing keys (defaults shown in brackets). Prints a JSON object on stdout:
     "binds": [...],                 # singularity --bind entries, "src:dst:mode"
     "claude_args": [...],           # args to pass to claude inside the container
     "tools": "a,b,c",               # AGENTIC_TOOLS env value
+    "env": {"KEY": "value"},        # extra --env entries, global+project merged
     "always_use_dangerous_skip_permissions": true,
   }
   
@@ -50,6 +51,9 @@ defaults so you don't have to repeat yourself in every project:
   - default_ro_paths, system_prompt_note: see their definitions below — none
     of this repo's own cluster paths are baked in, they're entirely a
     global-config concern.
+  - env (dict of str: str) is forwarded as extra --env KEY=VALUE entries to
+    the container; global and project dicts merge key-by-key, project wins
+    on collision.
 """
 import json
 import os
@@ -69,6 +73,7 @@ CONFIG_FIELDS = [
 # (project) or ~/.dangerous_claude/config.json (global, see module docstring) by hand
 # if you need them:
 #   tools             — space-separated tool names to enable (default: none)
+#   env               — dict of extra --env KEY: VALUE entries for the container
 #   extra_write_paths — extra absolute paths to bind read-write (list of str)
 #   readable_paths    — restrict which non-standard paths get bound read-only.
 #                        "*" (default) binds all of default_ro_paths (global
@@ -261,10 +266,13 @@ def main():
         claude_args.append("--dangerously-skip-permissions")
     claude_args.extend(extra_args)
 
+    env = {**global_config.get("env", {}), **config.get("env", {})}
+
     print(json.dumps({
         "binds": binds,
         "claude_args": claude_args,
         "tools": merged("tools", ""),
+        "env": env,
         "always_use_dangerous_skip_permissions": merged("always_use_dangerous_skip_permissions", True),
     }))
 

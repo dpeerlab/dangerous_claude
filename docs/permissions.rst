@@ -64,6 +64,13 @@ only make sense globally:
      "project_config_filename": ".agentic_peer_project.json"
    }
 
+``env`` sets extra environment variables inside the container (e.g. ``AWS_PROFILE``) — global
+and project ``env`` dicts merge key-by-key, with the project's value winning on collision:
+
+.. code-block:: json
+
+   {"env": {"AWS_PROFILE": "readonly"}}
+
 This is not a perfect security boundary against a compromised agent
 ------------------------------------------------------------------------
 
