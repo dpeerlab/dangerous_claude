@@ -42,6 +42,13 @@ Global defaults
 yourself. ``extra_write_paths``/``readable_paths`` there are added to whatever a project sets;
 other settings (like ``writeable_home``) apply unless a project overrides them.
 
+``env`` sets extra environment variables inside the container (e.g. ``AWS_PROFILE``) — global
+and project ``env`` dicts merge key-by-key, with the project's value winning on collision:
+
+.. code-block:: json
+
+   {"env": {"AWS_PROFILE": "readonly"}}
+
 This is not a perfect security boundary against a compromised agent
 ------------------------------------------------------------------------
 
