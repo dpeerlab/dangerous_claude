@@ -31,24 +31,10 @@ CONFIG_FIELDS = [
     ),
 ]
 
-# Advanced overrides — edit the project config, or ~/.dangerous_claude/config.json (global):
-#   tools             — space-separated tool names to enable (default: none)
-#   env               — dict of extra --env KEY: VALUE entries
-#   extra_write_paths — extra absolute paths to bind read-write (list of str)
-#   readable_paths    — restrict paths to read-only. "*" (default) = all of default_ro_paths;
-#                        a list binds only those (must be in default_ro_paths, or nested
-#                        inside one — a nested path carves out read-only inside an otherwise
-#                        writable home/work_dir bind).
-#   project_readonly  — mount the project directory read-only (default: false)
-#
-# Global-only (~/.dangerous_claude/config.json):
-#   default_ro_paths   — cluster paths readable_paths can restrict (default: none)
-#   system_prompt_note — extra sentence appended to the sandbox system prompt
-#
-# tools/ folders live in this repo for now (see add_tools.py) — not yet configurable.
+# Advanced overrides: tools, env, extra_write_paths, readable_paths, project_readonly (project config); default_ro_paths, system_prompt_note (global-only) — see docs/permissions.rst.
+# tools/ folders live in this repo (see add_tools.py) — not yet configurable.
 
-# Generic OS/tool paths for host binaries via the inherited PATH (module, slurm, gpu) — not
-# lab-specific, so hardcoded rather than a default_ro_paths concern.
+# Generic OS/tool paths for host binaries (module, slurm, gpu) — not lab-specific, so hardcoded.
 SYSTEM_RO_BINDS = [
     "/etc",
     "/lib",
@@ -70,9 +56,7 @@ def load_config(path):
 
 GLOBAL_CONFIG_PATH = os.path.join(os.environ["HOME"], ".dangerous_claude", "config.json")
 
-# .version (this repo's current release) vs ~/.dangerous_claude/.version_last_migrated (the
-# version Claude last walked the user through migrating to) — a mismatch triggers a
-# migration prompt below, see #9.
+# .version vs ~/.dangerous_claude/.version_last_migrated — mismatch triggers a migration prompt below, see #9.
 VERSION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".version")
 LAST_MIGRATED_PATH = os.path.join(os.environ["HOME"], ".dangerous_claude", ".version_last_migrated")
 
@@ -120,8 +104,7 @@ def main():
     changed = False
     for name, default, desc in CONFIG_FIELDS:
         if name not in config:
-            # global config supplies the suggested default, but this project
-            # still gets asked explicitly rather than silently inheriting it
+            # global value is just the suggested default — still asked per project, not silently inherited
             config[name] = prompt_for(name, global_config.get(name, default), desc)
             changed = True
 
@@ -209,8 +192,7 @@ def main():
     if system_prompt_note:
         system_prompt += f" {system_prompt_note}"
 
-    # --append-system-prompt isn't repeatable (a second occurrence overrides the first,
-    # it doesn't accumulate), so any additions must be concatenated into this one string.
+    # --append-system-prompt isn't repeatable (last one wins) — concatenate additions into this string.
     current_version = read_version(VERSION_PATH)
     last_migrated = read_version(LAST_MIGRATED_PATH)
     if current_version and current_version != last_migrated:
