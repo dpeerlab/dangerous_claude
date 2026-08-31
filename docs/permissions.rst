@@ -45,8 +45,8 @@ Global defaults
 ``~/.dangerous_claude/config.json`` sets defaults for every project, so you don't repeat
 yourself. ``extra_write_paths``/``readable_paths`` there are added to whatever a project sets.
 ``writeable_home``/``always_use_dangerous_skip_permissions`` still prompt per project even with
-a global value set — the global value is just the suggested default, since those are worth
-confirming explicitly rather than silently inheriting. A few settings only make sense globally:
+a global value set. That global value is only a suggested default; confirm it explicitly rather
+than inheriting it silently. A few settings only make sense globally:
 
 - ``default_ro_paths`` — your cluster's storage paths that ``readable_paths`` can restrict
   (empty by default; see the "anything else" note above)
@@ -68,13 +68,14 @@ confirming explicitly rather than silently inheriting. A few settings only make 
 Migration reminders
 ----------------------
 
-If ``~/.dangerous_claude/.version_last_migrated`` doesn't match this repo's ``.version``, the
-session's system prompt is told to read ``CHANGELOG.md`` and help migrate before doing anything
-else. Whoever/whatever does that migration should then update
-``.version_last_migrated`` — see `#9 <https://github.com/dpeerlab/dangerous_claude/issues/9>`_.
+When ``~/.dangerous_claude/.version_last_migrated`` doesn't match this repo's ``.version``, the
+session's system prompt tells Claude to read ``CHANGELOG.md`` first and help you migrate before
+answering anything else. After that migration, update ``.version_last_migrated`` yourself; the
+tool doesn't yet write it back automatically (see
+`#9 <https://github.com/dpeerlab/dangerous_claude/issues/9>`_).
 
-``env`` sets extra environment variables inside the container (e.g. ``AWS_PROFILE``) — global
-and project ``env`` dicts merge key-by-key, with the project's value winning on collision:
+``env`` sets extra environment variables inside the container, e.g. ``AWS_PROFILE``. Global and
+project ``env`` dicts merge key-by-key, and the project's value wins on collision:
 
 .. code-block:: json
 
