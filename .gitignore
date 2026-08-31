@@ -10,6 +10,7 @@ __pycache__/
 # Local agent notes, not published
 AGENTS.md
 CLAUDE.md
+SETUP_PEERLAB_DANGEROUS.md
 /.agentic_peer_project.json
 /.agentic_peer_project.json.bak
 /.dangerous_claude.json

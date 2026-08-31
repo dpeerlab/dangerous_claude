@@ -35,11 +35,12 @@ CONFIG_FIELDS = [
 # tools/ folders live in this repo (see add_tools.py) — not yet configurable.
 
 # Generic OS/tool paths for host binaries (module, slurm, gpu) — not lab-specific, so hardcoded.
+# Note: /etc/slurm is commonly its own mount (e.g. NFS/WekaFS), not part of the /etc filesystem —
+# binding /etc alone doesn't pull in separately-mounted submounts. If sbatch/squeue can't find
+# their config inside the container, add /etc/slurm to default_ro_paths in your global config
+# (it's cluster-specific, so it doesn't belong hardcoded here) — see SETUP_PEERLAB_DANGEROUS.md.
 SYSTEM_RO_BINDS = [
     "/etc",
-    # /etc/slurm is commonly its own mount (e.g. NFS/WekaFS), not part of the /etc filesystem —
-    # binding /etc alone doesn't pull in separately-mounted submounts, so bind it explicitly too.
-    "/etc/slurm",
     "/lib",
     "/lib64",
     "/usr/lib",
