@@ -22,7 +22,7 @@ cd /abs/path/to/your/project
 ```
 
 Sandboxes the current directory — there's no work-dir argument, `cd` there first. First run in a
-project prompts for two settings and writes `.agentic_peer_project.json`, e.g.:
+project prompts for two settings and writes `.dangerous_claude.json`, e.g.:
 
 ```json
 {
@@ -32,4 +32,5 @@ project prompts for two settings and writes `.agentic_peer_project.json`, e.g.:
 }
 ```
 
-See `docs/` for the full sandbox model and configuration reference.
+See `docs/` for the full sandbox model and configuration reference, and `CHANGELOG.md` for
+what's new.

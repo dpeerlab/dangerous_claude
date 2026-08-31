@@ -10,9 +10,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # replace config file
-CONFIG_FILE="${PROJECT_DIR}/.agentic_peer_project.json"
+CONFIG_FILE="${PROJECT_DIR}/.dangerous_claude.json"
 CONFIG_BACKUP="${CONFIG_FILE}.bak"
 TEMPLATE="${SCRIPT_DIR}/assets/.agentic_peer_project_template.json"
+
+# replace global config file (readable_paths/extra_write_paths defaults) too
+GLOBAL_CONFIG_DIR="${HOME}/.dangerous_claude"
+GLOBAL_CONFIG_FILE="${GLOBAL_CONFIG_DIR}/config.json"
+GLOBAL_CONFIG_BACKUP="${GLOBAL_CONFIG_FILE}.bak"
+GLOBAL_TEMPLATE="${SCRIPT_DIR}/assets/.dangerous_claude_global_template.json"
 
 # test directories
 export PATH_READONLY_DIR="${SCRIPT_DIR}/.test_dangerous_readonly"
@@ -35,6 +41,13 @@ setup() {
     # substitute placeholders and use template
     sed -e "s#<HOME>#${HOME}#g" -e "s#<TESTS_DIR>#${SCRIPT_DIR}#g" "${TEMPLATE}" > "${CONFIG_FILE}"
 
+    # backup + swap in the global config template too
+    mkdir -p "${GLOBAL_CONFIG_DIR}"
+    if [[ -e "${GLOBAL_CONFIG_FILE}" ]]; then
+        mv "${GLOBAL_CONFIG_FILE}" "${GLOBAL_CONFIG_BACKUP}"
+    fi
+    cp "${GLOBAL_TEMPLATE}" "${GLOBAL_CONFIG_FILE}"
+
     # create paths
     mkdir -p "${PATH_EXTRA_WRITE_DIR}" "${PATH_READONLY_DIR}" "${PATH_LOCALSCRATCH_WRITE}" "${PATH_LOCALSCRATCH_READ}" "${PATH_LOCALSCRATCH_NOREAD}"
 }
@@ -48,6 +61,12 @@ teardown() {
     rm -f "${CONFIG_FILE}"
     if [[ -e "${CONFIG_BACKUP}" ]]; then
         cp "${CONFIG_BACKUP}" "${CONFIG_FILE}"
+    fi
+
+    # restore global config
+    rm -f "${GLOBAL_CONFIG_FILE}"
+    if [[ -e "${GLOBAL_CONFIG_BACKUP}" ]]; then
+        cp "${GLOBAL_CONFIG_BACKUP}" "${GLOBAL_CONFIG_FILE}"
     fi
 }
 

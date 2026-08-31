@@ -10,7 +10,9 @@ import os
 import subprocess
 import sys
 
-TOOLS_ROOT = "/data1/collab002/sail/projects/tools/sail_force/agents/dangerous_claude/tools"
+# Tools live in this repo for now (tools/<name>/include.sh). May move to a
+# configurable location later, but not yet.
+TOOLS_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools")
 
 
 def resolve_tools(tools_spec):
@@ -28,6 +30,9 @@ def main():
         sys.exit(1)
 
     work_dir, tools_spec = sys.argv[1:3]
+    if not tools_spec.strip():
+        return
+
     settings_path = os.path.join(os.environ["HOME"], ".claude", "settings.json")
 
     for name in resolve_tools(tools_spec):

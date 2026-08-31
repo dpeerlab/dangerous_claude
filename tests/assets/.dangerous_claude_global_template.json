@@ -1,0 +1,4 @@
+{
+  "readable_paths": ["/localscratch/.test_dangerous_claude_read"],
+  "extra_write_paths": ["/localscratch/.test_dangerous_claude_write"]
+}

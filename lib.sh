@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Sandboxes the current working directory. Project config in `.agentic_peer_project.json`.
+# Sandboxes the current working directory. Project config filename defaults to
+# .dangerous_claude.json, resolved dynamically by setup.py (see its docstring
+# for the global-config project_config_filename override).
 #
 # Shared container launch logic for dangerous_claude. Not to be meant to run directly.
 
@@ -14,11 +16,12 @@ dangerous_claude_run() {
     local -a cmd_args=("$@")
 
     local work_dir="$(pwd)"
-    local config_file="${work_dir}/.agentic_peer_project.json"
 
-    # fail if no write permission in project dir 
-    if [[ ! -w "${work_dir}" ]] || { [[ -e "${config_file}" ]] && [[ ! -w "${config_file}" ]]; }; then
-        echo "No write permission for ${work_dir} (or its .agentic_peer_project.json)." >&2
+    # fail if no write permission in the project dir. The project config's
+    # filename is resolved dynamically by setup.py (global config can repoint
+    # it), so we can't check a specific file here — just the directory itself.
+    if [[ ! -w "${work_dir}" ]]; then
+        echo "No write permission for ${work_dir}." >&2
         return 1
     fi
 
@@ -37,6 +40,10 @@ dangerous_claude_run() {
     tools=$(jq -r '.tools' <<< "${setup_json}")
     local bind_str
     bind_str=$(IFS=,; echo "${binds[*]}")
+
+    # extra --env KEY=VALUE entries (global config + project config, merged by setup.py)
+    local -a extra_env
+    mapfile -t extra_env < <(jq -r '.env // {} | to_entries[] | "--env=" + .key + "=" + .value' <<< "${setup_json}")
 
     # get container (built by setup/build.sh into builds/, claude_code.sif is a symlink to the latest version)
     local claude_container="${DANGEROUS_CLAUDE_ROOT}/builds/claude_code.sif"
@@ -59,7 +66,7 @@ dangerous_claude_run() {
     echo "=== Entering container ==="
     echo "Container image: ${claude_container}"
     echo "Command: ${run_cmd[*]}"
-    echo "HOME: ${home_dir} (read-write iff writeable_home=true in .agentic_peer_project.json; ~/.claude always read-write)"
+    echo "HOME: ${home_dir} (read-write iff writeable_home=true in the project/global config; ~/.claude always read-write)"
     echo "TMP: real /tmp (read-write, bound directly)"
 
     singularity exec \
@@ -67,7 +74,6 @@ dangerous_claude_run() {
         --contain \
         --bind   "${bind_str}" \
         --pwd    "${work_dir}" \
-        --env    "AWS_PROFILE=readonly" \
         --env    "_USES_CLAUDE_SINGULARITY=1" \
         --env    "USER=${USER}" \
         --env    "REPO=${work_dir}" \
@@ -75,6 +81,7 @@ dangerous_claude_run() {
         --env    "PIXI_CACHE_DIR=${work_dir}/.pixi/cache" \
         --env    "CLAUDE_CONFIG_DIR=${claude_config}" \
         --env    "AGENTIC_TOOLS=${tools// /,}" \
+        "${extra_env[@]}" \
         "${claude_container}" \
         "${run_cmd[@]}"
 }
