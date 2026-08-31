@@ -37,6 +37,9 @@ CONFIG_FIELDS = [
 # Generic OS/tool paths for host binaries (module, slurm, gpu) — not lab-specific, so hardcoded.
 SYSTEM_RO_BINDS = [
     "/etc",
+    # /etc/slurm is commonly its own mount (e.g. NFS/WekaFS), not part of the /etc filesystem —
+    # binding /etc alone doesn't pull in separately-mounted submounts, so bind it explicitly too.
+    "/etc/slurm",
     "/lib",
     "/lib64",
     "/usr/lib",
