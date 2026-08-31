@@ -153,10 +153,7 @@ def main():
                 file=sys.stderr,
             )
 
-    # bind order matters here (see readable_paths docs above): a later bind onto a parent path
-    # shadows an earlier bind already mounted onto a child of it, so SYSTEM_RO_BINDS (generic
-    # paths like /etc) must come before root_restrictions (default_ro_paths can name a subpath
-    # of one, e.g. /etc/slurm) so the more specific one wins by being mounted last.
+    # bind order matters (see readable_paths docs above): later binds shadow earlier ones on a parent path, so SYSTEM_RO_BINDS must precede root_restrictions in case one nests under it (e.g. /etc/slurm under /etc).
     root_restrictions = [p for p in allowed_restrictable if p in default_ro_paths]
     nested_restrictions = [p for p in allowed_restrictable if p not in default_ro_paths]
 
