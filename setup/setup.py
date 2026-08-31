@@ -12,9 +12,9 @@ writeable_home (bool, default true): if false, bind $HOME read-only, else read-w
 shared across every project rather than isolated per project.
 
 Global config (~/.dangerous_claude/config.json) supplies defaults, merged with the project
-config: extra_write_paths/readable_paths concatenate; other scalars fall back to the global
-value if the project doesn't set them — except the two CONFIG_FIELDS, which still prompt per
-project (the global value is just the suggested default), since those are worth an explicit
+config: extra_write_paths/restricted_read_paths concatenate; other scalars fall back to the
+global value if the project doesn't set them — except the two CONFIG_FIELDS, which still prompt
+per project (the global value is just the suggested default), since those are worth an explicit
 per-project opt-in. See "Advanced overrides" below for individual fields.
 """
 import json
@@ -31,8 +31,18 @@ CONFIG_FIELDS = [
     ),
 ]
 
-# Advanced overrides: tools, env, extra_write_paths, readable_paths, project_readonly (project config); default_ro_paths, system_prompt_note (global-only) — see docs/permissions.rst.
+# Advanced overrides: tools, env, extra_write_paths, restricted_read_paths, project_readonly (project config); extra_read_paths, system_prompt_note (global-only) — see docs/permissions.rst.
 # tools/ folders live in this repo (see add_tools.py) — not yet configurable.
+# extra_read_paths/restricted_read_paths were named default_ro_paths/readable_paths before v0.3.1 — both names still work.
+LEGACY_KEYS = {"extra_read_paths": ["default_ro_paths"], "restricted_read_paths": ["readable_paths"]}
+
+
+def cfg_get(d, key, default=None):
+    return next((d[k] for k in [key] + LEGACY_KEYS.get(key, []) if k in d), default)
+
+
+def cfg_has(d, key):
+    return any(k in d for k in [key] + LEGACY_KEYS.get(key, []))
 
 # Generic OS/tool paths for host binaries (module, slurm, gpu) — not lab-specific, so hardcoded.
 # No generic /etc: a project's own /etc/* bind (e.g. /etc/slurm) would nest under it and conflict.
@@ -118,25 +128,25 @@ def main():
     def merged(key, default):
         return config.get(key, global_config.get(key, default))
 
-    default_ro_paths = global_config.get("default_ro_paths", [])
+    extra_read_paths = cfg_get(global_config, "extra_read_paths", [])
 
-    readable_paths = config.get("readable_paths", "*")
-    if readable_paths == "*":
-        if "readable_paths" not in config and "readable_paths" in global_config:
-            readable_paths = global_config["readable_paths"]
+    restricted_read_paths = cfg_get(config, "restricted_read_paths", "*")
+    if restricted_read_paths == "*":
+        if not cfg_has(config, "restricted_read_paths") and cfg_has(global_config, "restricted_read_paths"):
+            restricted_read_paths = cfg_get(global_config, "restricted_read_paths", [])
         else:
-            readable_paths = default_ro_paths
+            restricted_read_paths = extra_read_paths
     else:
-        readable_paths = global_config.get("readable_paths", []) + readable_paths
+        restricted_read_paths = cfg_get(global_config, "restricted_read_paths", []) + restricted_read_paths
 
-    if readable_paths == default_ro_paths:
-        allowed_restrictable = default_ro_paths
+    if restricted_read_paths == extra_read_paths:
+        allowed_restrictable = extra_read_paths
     else:
         unknown = []
         allowed_restrictable = []
-        for p in readable_paths:
+        for p in restricted_read_paths:
             found = False
-            for base in default_ro_paths:
+            for base in extra_read_paths:
                 if os.path.commonpath([p, base]) == base:
                     found = True
                     allowed_restrictable.append(p)
@@ -146,24 +156,24 @@ def main():
         if unknown:
             unknown_list = "\n".join(f"  - {p}" for p in unknown)
             print(
-                f"error: readable_paths entries aren't covered by any default_ro_paths entry:\n"
+                f"error: restricted_read_paths entries aren't covered by any extra_read_paths entry:\n"
                 f"{unknown_list}\n"
                 "\n"
-                "readable_paths can only narrow down paths that default_ro_paths already exposes "
-                "read-only — it can't grant access to a path default_ro_paths doesn't cover.\n"
+                "restricted_read_paths can only narrow down paths that extra_read_paths already "
+                "exposes read-only — it can't grant access to a path extra_read_paths doesn't cover.\n"
                 "\n"
-                "To fix this, add a parent path covering the entries above to default_ro_paths in "
+                "To fix this, add a parent path covering the entries above to extra_read_paths in "
                 f"your global config ({GLOBAL_CONFIG_PATH}), e.g.:\n"
                 "\n"
-                f'  {{"default_ro_paths": [{json.dumps(os.path.dirname(unknown[0]))}]}}\n'
+                f'  {{"extra_read_paths": [{json.dumps(os.path.dirname(unknown[0]))}]}}\n'
                 "\n"
                 "See docs/permissions.rst for details.",
                 file=sys.stderr,
             )
             sys.exit(1)
 
-    root_restrictions = [p for p in allowed_restrictable if p in default_ro_paths]
-    nested_restrictions = [p for p in allowed_restrictable if p not in default_ro_paths]
+    root_restrictions = [p for p in allowed_restrictable if p in extra_read_paths]
+    nested_restrictions = [p for p in allowed_restrictable if p not in extra_read_paths]
 
     binds = [f"{p}:{p}:ro" for p in SYSTEM_RO_BINDS]
     binds += [f"{p}:{p}:ro" for p in root_restrictions]

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.1
+
+- **Renamed config keys**: `default_ro_paths` is now `extra_read_paths`, `readable_paths` is now
+  `restricted_read_paths`. Both old names still work; nothing breaks if you keep using them.
+- Config naming is stable as of this release. No further renames are planned.
+
 ## v0.3.0
 
 - **Version-mismatch migration prompt** (#15): when `~/.dangerous_claude/.version_last_migrated`

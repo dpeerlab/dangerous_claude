@@ -1,7 +1,7 @@
 {
   "always_use_dangerous_skip_permissions": true,
   "writeable_home": false,
-  "readable_paths": [
+  "restricted_read_paths": [
     "<TESTS_DIR>/.test_dangerous_readonly"
   ],
   "extra_write_paths": [
