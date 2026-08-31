@@ -1,5 +1,5 @@
 {
-  "default_ro_paths": ["/localscratch", "<TESTS_DIR>"],
-  "readable_paths": ["/localscratch/.test_dangerous_claude_read"],
+  "extra_read_paths": ["/localscratch", "<TESTS_DIR>"],
+  "restricted_read_paths": ["/localscratch/.test_dangerous_claude_read"],
   "extra_write_paths": ["/localscratch/.test_dangerous_claude_write"]
 }

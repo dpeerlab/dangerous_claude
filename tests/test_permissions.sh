@@ -14,7 +14,7 @@ CONFIG_FILE="${PROJECT_DIR}/.dangerous_claude.json"
 CONFIG_BACKUP="${CONFIG_FILE}.bak"
 TEMPLATE="${SCRIPT_DIR}/assets/.agentic_peer_project_template.json"
 
-# replace global config file (readable_paths/extra_write_paths defaults) too
+# replace global config file (restricted_read_paths/extra_write_paths defaults) too
 GLOBAL_CONFIG_DIR="${HOME}/.dangerous_claude"
 GLOBAL_CONFIG_FILE="${GLOBAL_CONFIG_DIR}/config.json"
 GLOBAL_CONFIG_BACKUP="${GLOBAL_CONFIG_FILE}.bak"

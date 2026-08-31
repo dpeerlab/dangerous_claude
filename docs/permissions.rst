@@ -16,7 +16,7 @@ Default access
 - ``/tmp``: always read-write
 - ``~/.claude``: always read-write, so Claude can save its own state.
 - Anything else: not visible at all, not even read-only. This repo ships with no
-  cluster/lab storage paths bound by default — set ``default_ro_paths`` in your global config
+  cluster/lab storage paths bound by default — set ``extra_read_paths`` in your global config
   (below) for your own cluster.
 
 ``extra_write_paths``
@@ -29,31 +29,33 @@ another directory.
 
    {"extra_write_paths": ["/home/you/.some_tool_cache"]}
 
-``readable_paths``
-------------------
+``restricted_read_paths``
+-------------------------
 
 Restricts a folder (and its subfolders) to read-only. Use it for example for a subfolder of your project
 that should stay read-only even though the project itself is writable — e.g. sensitive raw data:
 
 .. code-block:: json
 
-   {"readable_paths": ["/data1/collab002/myproject/raw_data"]}
+   {"restricted_read_paths": ["/data1/collab002/myproject/raw_data"]}
 
-Each entry must fall under a ``default_ro_paths`` entry in your global config (below) —
-``readable_paths`` narrows down what ``default_ro_paths`` already exposes, it can't grant access
-to a path ``default_ro_paths`` doesn't cover. If it doesn't, setup fails with an error telling you
-which ``default_ro_paths`` entry to add.
+Each entry must fall under an ``extra_read_paths`` entry in your global config (below) —
+``restricted_read_paths`` narrows down what ``extra_read_paths`` already exposes, it can't grant
+access to a path ``extra_read_paths`` doesn't cover. If it doesn't, setup fails with an error
+telling you which ``extra_read_paths`` entry to add.
+
+(Named ``default_ro_paths``/``readable_paths`` before v0.3.1 — both old names still work.)
 
 Global defaults
 ------------------
 
 ``~/.dangerous_claude/config.json`` sets defaults for every project, so you don't repeat
-yourself. ``extra_write_paths``/``readable_paths`` there are added to whatever a project sets.
+yourself. ``extra_write_paths``/``restricted_read_paths`` there are added to whatever a project sets.
 ``writeable_home``/``always_use_dangerous_skip_permissions`` still prompt per project even with
 a global value set. That global value is only a suggested default; confirm it explicitly rather
 than inheriting it silently. A few settings only make sense globally:
 
-- ``default_ro_paths`` — your cluster's storage paths that ``readable_paths`` can restrict
+- ``extra_read_paths`` — your cluster's storage paths that ``restricted_read_paths`` can restrict
   (empty by default; see the "anything else" note above)
 - ``project_config_filename`` — use a different project-file name than
   ``.dangerous_claude.json``, e.g. to keep existing ``.agentic_peer_project.json`` projects
@@ -66,7 +68,7 @@ than inheriting it silently. A few settings only make sense globally:
 .. code-block:: json
 
    {
-     "default_ro_paths": ["/data1/collab002", "/scratch"],
+     "extra_read_paths": ["/data1/collab002", "/scratch"],
      "project_config_filename": ".agentic_peer_project.json"
    }
 
