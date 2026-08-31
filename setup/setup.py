@@ -144,10 +144,23 @@ def main():
             if not found:
                 unknown.append(p)
         if unknown:
+            unknown_list = "\n".join(f"  - {p}" for p in unknown)
             print(
-                f"warning: readable_paths entries not in default_ro_paths, ignoring: {unknown}",
+                f"error: readable_paths entries aren't covered by any default_ro_paths entry:\n"
+                f"{unknown_list}\n"
+                "\n"
+                "readable_paths can only narrow down paths that default_ro_paths already exposes "
+                "read-only — it can't grant access to a path default_ro_paths doesn't cover.\n"
+                "\n"
+                "To fix this, add a parent path covering the entries above to default_ro_paths in "
+                f"your global config ({GLOBAL_CONFIG_PATH}), e.g.:\n"
+                "\n"
+                f'  {{"default_ro_paths": [{json.dumps(os.path.dirname(unknown[0]))}]}}\n'
+                "\n"
+                "See docs/permissions.rst for details.",
                 file=sys.stderr,
             )
+            sys.exit(1)
 
     root_restrictions = [p for p in allowed_restrictable if p in default_ro_paths]
     nested_restrictions = [p for p in allowed_restrictable if p not in default_ro_paths]

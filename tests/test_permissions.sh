@@ -46,7 +46,7 @@ setup() {
     if [[ -e "${GLOBAL_CONFIG_FILE}" ]]; then
         mv "${GLOBAL_CONFIG_FILE}" "${GLOBAL_CONFIG_BACKUP}"
     fi
-    cp "${GLOBAL_TEMPLATE}" "${GLOBAL_CONFIG_FILE}"
+    sed -e "s#<HOME>#${HOME}#g" -e "s#<TESTS_DIR>#${SCRIPT_DIR}#g" "${GLOBAL_TEMPLATE}" > "${GLOBAL_CONFIG_FILE}"
 
     # create paths
     mkdir -p "${PATH_EXTRA_WRITE_DIR}" "${PATH_READONLY_DIR}" "${PATH_LOCALSCRATCH_WRITE}" "${PATH_LOCALSCRATCH_READ}" "${PATH_LOCALSCRATCH_NOREAD}"

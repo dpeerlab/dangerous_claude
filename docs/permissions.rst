@@ -39,6 +39,11 @@ that should stay read-only even though the project itself is writable — e.g. s
 
    {"readable_paths": ["/data1/collab002/myproject/raw_data"]}
 
+Each entry must fall under a ``default_ro_paths`` entry in your global config (below) —
+``readable_paths`` narrows down what ``default_ro_paths`` already exposes, it can't grant access
+to a path ``default_ro_paths`` doesn't cover. If it doesn't, setup fails with an error telling you
+which ``default_ro_paths`` entry to add.
+
 Global defaults
 ------------------
 
