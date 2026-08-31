@@ -153,12 +153,15 @@ def main():
                 file=sys.stderr,
             )
 
-    # bind order matters here (see readable_paths docs above)
+    # bind order matters here (see readable_paths docs above): a later bind onto a parent path
+    # shadows an earlier bind already mounted onto a child of it, so SYSTEM_RO_BINDS (generic
+    # paths like /etc) must come before root_restrictions (default_ro_paths can name a subpath
+    # of one, e.g. /etc/slurm) so the more specific one wins by being mounted last.
     root_restrictions = [p for p in allowed_restrictable if p in default_ro_paths]
     nested_restrictions = [p for p in allowed_restrictable if p not in default_ro_paths]
 
-    binds = [f"{p}:{p}:ro" for p in root_restrictions]
-    binds += [f"{p}:{p}:ro" for p in SYSTEM_RO_BINDS]
+    binds = [f"{p}:{p}:ro" for p in SYSTEM_RO_BINDS]
+    binds += [f"{p}:{p}:ro" for p in root_restrictions]
 
     writeable_home = merged("writeable_home", True)
     # Must come before the ~/.claude rw bind below (nested under $HOME) so that one can override it.
