@@ -1,5 +1,14 @@
 # track_git_project
 
+## Enabling
+
+Add it to `tools` in your project's `.agentic_peer_project.json` (space-separated if enabling
+more than one):
+
+```json
+{"tools": "track_git_project"}
+```
+
 Adds two hooks:
 - A `PostToolUse` hook (`mark_dirty.sh`, matcher `Edit|Write|MultiEdit|NotebookEdit`) that
   drops a marker file (`/tmp/track_git_project/<session_id>.dirty`) whenever a file is
