@@ -24,34 +24,19 @@ From: rockylinux:8.6
         bash coreutils findutils gzip tar zip unzip procps-ng openssh-clients \
         curl git jq which glibc-langpack-en \
         lua lua-posix lua-filesystem tcl
-    # lua-json: the host's Lmod (bind-mounted at /usr/share/lmod) requires a lua
-    # 'json' module on the system lua path; without it every `module` call dies
-    # in JsonShell.lua. Lmod pins its own LUA_PATH, so the module must live at
-    # /usr/share/lua/5.3/ — where the EPEL package installs it. Fall back to the
-    # dependency-free rxi/json.lua (same encode/decode API) if the package is gone.
+    # Lmod's LUA_PATH requires a lua 'json' module at /usr/share/lua/5.3/, or
+    # every `module` call dies. Fall back to rxi/json.lua if the EPEL package is gone.
     dnf install -y lua-json || \
         curl -fsSL https://raw.githubusercontent.com/rxi/json.lua/master/json.lua \
             -o /usr/share/lua/5.3/json.lua
-    # Create mount points for cluster paths (needed for ro/rw bind mounts to work;
-    # Singularity silently skips binds whose destination doesn't exist in the image)
+    # Bind destinations must pre-exist — Singularity silently skips missing ones.
     mkdir -p /data /data1 /ifs /scratch /usersoftware /programs /localscratch /io500 /usr/share/lmod /admin /etc/slurm /run/munge
 
-    # SLURM client (sbatch/squeue/scontrol/etc) — the RPM matches the host's
-    # from-source EL8 build exactly (25.11.3), so binaries+libs are ABI-compatible.
-    # slurm.conf and the munge auth socket still come from the host at runtime
-    # (bound in by start.sh, see setup.py) — this only bakes in the binaries.
-    # Fetched via a --bind mount onto /mnt (set up by build.sh) rather than
-    # %files: %files' copy-in silently no-ops under --fakeroot on this host,
-    # leaving the RPM missing even with an absolute source path — a bind
-    # mount works instead since it doesn't go through that copy engine at
-    # all. Bound straight onto /mnt itself (guaranteed to exist in the base
-    # image) rather than a subdirectory, since bind destinations that don't
-    # already exist in the image are silently skipped.
+    # SLURM client binaries only — slurm.conf and the munge socket come from the
+    # host at runtime. RPM arrives via --bind onto /mnt (build.sh), not %files.
     dnf install -y --setopt=tsflags=nodocs munge munge-libs mariadb-connector-c readline /mnt/slurm-client.rpm
-    # The host slurm.conf sets SlurmUser=slurm; if that user doesn't resolve
-    # inside the container, config parsing aborts and every client command
-    # (sbatch/squeue/...) dies with "Unable to process configuration file".
-    # Any uid works — client commands never act as this user (auth is munge).
+    # slurm.conf's SlurmUser=slurm must resolve or client commands abort at
+    # config parsing. Any uid works — auth is munge, not this user.
     useradd --system --shell /sbin/nologin --no-create-home slurm
 
     # Node.js 20 LTS — Claude Code's npm-install fallback path, and a ripgrep runtime dep
@@ -79,9 +64,7 @@ From: rockylinux:8.6
     # Record the exact version baked into this image, read back by build.sh for naming
     /opt/claude/bin/claude --version | awk '{print $1}' > /opt/claude/VERSION
 
-    # No build toolchain in the sandbox — remove make (and anything that pulled
-    # it in as a dependency) so the agent can't compile/install software inside
-    # the container.
+    # No build toolchain — blocks compiling/installing software inside the sandbox.
     dnf remove -y make || true
 
     dnf clean all

@@ -7,8 +7,7 @@ Reads/creates the project config file in WORK_DIR, prompting for any missing CON
 keys. Prints JSON: {"binds": [...], "claude_args": [...], "tools": "a b", "env": {...},
 "always_use_dangerous_skip_permissions": bool}.
 
-tools is a JSON list (e.g. ["a", "b"]) in config; "*" for all tools, or a space-separated
-string, still work too.
+tools is a list (e.g. ["a", "b"]) in config, or "*" for all tools.
 
 writeable_home (bool, default true): if false, bind $HOME read-only, else read-write.
 ~/.claude is always read-write regardless, so Claude Code can persist its own state there,
@@ -91,8 +90,7 @@ def read_file(path):
 
 
 def normalize_tools(value):
-    # tools is a JSON list (["a", "b"]) in config; "*" (meaning all tools) or a
-    # space-separated string still work too, for backward compatibility.
+    # tools accepts a list, "*", or a space-separated string.
     if isinstance(value, list):
         return " ".join(value)
     return value or ""
@@ -243,8 +241,7 @@ def main():
             f"from version {last_migrated or 'none'} to {current_version} before answering "
             "questions."
         )
-        # Embedded, not just a path reference — the changelog lives in the dangerous_claude
-        # repo, which isn't necessarily bind-mounted into whatever project this session runs in.
+        # Embedded, since this repo isn't necessarily bind-mounted into the target project.
         changelog = read_file(CHANGELOG_PATH)
         if changelog:
             system_prompt += f"\n\n--- dangerous_claude CHANGELOG.md ---\n{changelog}"

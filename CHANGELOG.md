@@ -2,17 +2,15 @@
 
 ## v0.4.0
 
-- **`track_git_project` tool**: blocks session end if the project has uncommitted changes.
-  Contributed from its original home in the `sail_force` project's fork of this repo. See
+- **`track_git_project` tool**: blocks session end if the project has uncommitted changes. See
   `tools/track_git_project/README.md`.
-- **`tools` config can now be a JSON list** (e.g. `["track_git_project"]`), which reads more
-  naturally in JSON than a space-separated string. `"*"` and the old space-separated string
-  form still work.
-- **`zip`/`unzip` added to the container image** — previously only `gzip`/`tar` were available.
-- **Migration prompt now embeds this changelog directly**: the version-mismatch system prompt
-  used to just say "read the change log" with no path, which went nowhere if this repo wasn't
-  bind-mounted into the target project's container. `setup.py` now inlines `CHANGELOG.md`'s
-  content into the prompt itself, so migration guidance works regardless of that project's binds.
+- **`tools` config now accepts a JSON list** (e.g. `["track_git_project"]`). `"*"` and the old
+  space-separated string still work.
+- **`zip`/`unzip` added to the container image**, alongside the existing `gzip`/`tar`.
+- **Migration prompt now embeds the full changelog**: the version-mismatch prompt used to just
+  say "read the change log" with no path, so it failed whenever this repo wasn't bind-mounted
+  into the target project's container. `setup.py` now inlines `CHANGELOG.md` itself, so
+  migration guidance works regardless of that project's binds.
 
 ## v0.3.1
 
