@@ -4,8 +4,10 @@
 Usage: setup.py WORK_DIR [-- extra claude args...]
 
 Reads/creates the project config file in WORK_DIR, prompting for any missing CONFIG_FIELDS
-keys. Prints JSON: {"binds": [...], "claude_args": [...], "tools": "a,b,c", "env": {...},
+keys. Prints JSON: {"binds": [...], "claude_args": [...], "tools": "a b", "env": {...},
 "always_use_dangerous_skip_permissions": bool}.
+
+tools is a list (e.g. ["a", "b"]) in config, or "*" for all tools.
 
 writeable_home (bool, default true): if false, bind $HOME read-only, else read-write.
 ~/.claude is always read-write regardless, so Claude Code can persist its own state there,
@@ -67,7 +69,9 @@ def load_config(path):
 GLOBAL_CONFIG_PATH = os.path.join(os.environ["HOME"], ".dangerous_claude", "config.json")
 
 # .version vs ~/.dangerous_claude/.version_last_migrated — mismatch triggers a migration prompt below, see #9.
-VERSION_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".version")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VERSION_PATH = os.path.join(REPO_ROOT, ".version")
+CHANGELOG_PATH = os.path.join(REPO_ROOT, "CHANGELOG.md")
 LAST_MIGRATED_PATH = os.path.join(os.environ["HOME"], ".dangerous_claude", ".version_last_migrated")
 
 
@@ -76,6 +80,20 @@ def read_version(path):
         with open(path) as f:
             return f.read().strip()
     return None
+
+
+def read_file(path):
+    if os.path.exists(path):
+        with open(path) as f:
+            return f.read().strip()
+    return None
+
+
+def normalize_tools(value):
+    # tools accepts a list, "*", or a space-separated string.
+    if isinstance(value, list):
+        return " ".join(value)
+    return value or ""
 
 
 YELLOW = "\033[33m"
@@ -219,10 +237,16 @@ def main():
     last_migrated = read_version(LAST_MIGRATED_PATH)
     if current_version and current_version != last_migrated:
         system_prompt += (
-            " Before anything else, read the change log. The last migrated version was "
-            f"{last_migrated or 'none'} but the current version is {current_version}. Help "
-            "the user migrate before answering questions."
+            " Before anything else, review the change log below and help the user migrate "
+            f"from version {last_migrated or 'none'} to {current_version} before answering "
+            "questions."
         )
+        # Embedded, since this repo isn't necessarily bind-mounted into the target project.
+        changelog = read_file(CHANGELOG_PATH)
+        if changelog:
+            system_prompt += f"\n\n--- dangerous_claude CHANGELOG.md ---\n{changelog}"
+        else:
+            system_prompt += f" (changelog not found at {CHANGELOG_PATH})"
 
     claude_args = [
         "--append-system-prompt",
@@ -243,7 +267,7 @@ def main():
     print(json.dumps({
         "binds": binds,
         "claude_args": claude_args,
-        "tools": merged("tools", ""),
+        "tools": normalize_tools(merged("tools", "")),
         "env": env,
         "always_use_dangerous_skip_permissions": merged("always_use_dangerous_skip_permissions", True),
     }))

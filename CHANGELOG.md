@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.0
+
+- **`track_git_project` tool**: blocks session end if the project has uncommitted changes. See
+  `tools/track_git_project/README.md`.
+- **`tools` config now accepts a JSON list** (e.g. `["track_git_project"]`). `"*"` and the old
+  space-separated string still work.
+- **`zip`/`unzip` added to the container image**, alongside the existing `gzip`/`tar`.
+- **Migration prompt now embeds the full changelog**: the version-mismatch prompt used to just
+  say "read the change log" with no path, so it failed whenever this repo wasn't bind-mounted
+  into the target project's container. `setup.py` now inlines `CHANGELOG.md` itself, so
+  migration guidance works regardless of that project's binds.
+
 ## v0.3.1
 
 - **Renamed config keys**: `default_ro_paths` is now `extra_read_paths`, `readable_paths` is now
