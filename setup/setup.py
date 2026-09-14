@@ -4,8 +4,11 @@
 Usage: setup.py WORK_DIR [-- extra claude args...]
 
 Reads/creates the project config file in WORK_DIR, prompting for any missing CONFIG_FIELDS
-keys. Prints JSON: {"binds": [...], "claude_args": [...], "tools": "a,b,c", "env": {...},
+keys. Prints JSON: {"binds": [...], "claude_args": [...], "tools": "a b", "env": {...},
 "always_use_dangerous_skip_permissions": bool}.
+
+tools is a JSON list (e.g. ["a", "b"]) in config; "*" for all tools, or a space-separated
+string, still work too.
 
 writeable_home (bool, default true): if false, bind $HOME read-only, else read-write.
 ~/.claude is always read-write regardless, so Claude Code can persist its own state there,
@@ -85,6 +88,14 @@ def read_file(path):
         with open(path) as f:
             return f.read().strip()
     return None
+
+
+def normalize_tools(value):
+    # tools is a JSON list (["a", "b"]) in config; "*" (meaning all tools) or a
+    # space-separated string still work too, for backward compatibility.
+    if isinstance(value, list):
+        return " ".join(value)
+    return value or ""
 
 
 YELLOW = "\033[33m"
@@ -259,7 +270,7 @@ def main():
     print(json.dumps({
         "binds": binds,
         "claude_args": claude_args,
-        "tools": merged("tools", ""),
+        "tools": normalize_tools(merged("tools", "")),
         "env": env,
         "always_use_dangerous_skip_permissions": merged("always_use_dangerous_skip_permissions", True),
     }))

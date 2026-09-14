@@ -2,11 +2,11 @@
 
 ## Enabling
 
-Add it to `tools` in your project's `.agentic_peer_project.json` (space-separated if enabling
-more than one):
+Add it to `tools` in your project's `.agentic_peer_project.json` (a list; add other tool names
+to enable more than one):
 
 ```json
-{"tools": "track_git_project"}
+{"tools": ["track_git_project"]}
 ```
 
 Adds two hooks:

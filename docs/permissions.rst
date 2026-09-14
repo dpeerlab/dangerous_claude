@@ -64,12 +64,12 @@ than inheriting it silently. A few settings only make sense globally:
   pointer to your own docs
 
 ``tools`` folders live in this repo's ``tools/`` directory for now — not yet configurable.
-Enable one or more by name in your project config (space-separated), or ``"*"`` for all of them.
+Enable one or more by name in your project config as a list, or ``"*"`` for all of them.
 For example, to enable ``track_git_project`` (blocks session end on uncommitted changes):
 
 .. code-block:: json
 
-   {"tools": "track_git_project"}
+   {"tools": ["track_git_project"]}
 
 .. code-block:: json
 
