@@ -21,7 +21,7 @@ From: rockylinux:8.6
     dnf install -y epel-release
     dnf config-manager --set-enabled powertools
     dnf install -y --setopt=tsflags=nodocs --allowerasing \
-        bash coreutils findutils gzip tar procps-ng openssh-clients \
+        bash coreutils findutils gzip tar zip unzip procps-ng openssh-clients \
         curl git jq which glibc-langpack-en \
         lua lua-posix lua-filesystem tcl
     # lua-json: the host's Lmod (bind-mounted at /usr/share/lmod) requires a lua
