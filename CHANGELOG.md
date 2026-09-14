@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.4.0
+
+- **`track_git_project` tool**: blocks session end if the project has uncommitted changes.
+  Contributed from its original home in the `sail_force` project's fork of this repo. See
+  `tools/track_git_project/README.md`.
+- **`zip`/`unzip` added to the container image** — previously only `gzip`/`tar` were available.
+- **Migration prompt now embeds this changelog directly**: the version-mismatch system prompt
+  used to just say "read the change log" with no path, which went nowhere if this repo wasn't
+  bind-mounted into the target project's container. `setup.py` now inlines `CHANGELOG.md`'s
+  content into the prompt itself, so migration guidance works regardless of that project's binds.
+
 ## v0.3.1
 
 - **Renamed config keys**: `default_ro_paths` is now `extra_read_paths`, `readable_paths` is now
